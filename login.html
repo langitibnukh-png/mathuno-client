@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MathUNO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 64px;
+            margin-bottom: 10px;
+        }
+
+        .logo-section h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .logo-section p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">🎴</div>
+            <h1>MathUNO</h1>
+            <p>Belajar Matematika Seru!</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">👤 Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    placeholder="Masukkan username kamu"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="kelas">🏫 Kelas</label>
+                <select id="kelas" required>
+                    <option value="">-- Pilih Kelas --</option>
+                    <option value="X-1">X-1</option>
+                    <option value="X-2">X-2</option>
+                    <option value="X-3">X-3</option>
+                    <option value="X-4">X-4</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="sekolah">🏛️ Sekolah</label>
+                <input 
+                    type="text" 
+                    id="sekolah" 
+                    placeholder="Nama sekolah kamu"
+                    value="SMA Negeri 1"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="btn-login">
+                🚀 MASUK
+            </button>
+        </form>
+
+        <p class="footer-text">
+            Media Pembelajaran Matematika Kelas X
+        </p>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const kelas = document.getElementById('kelas').value;
+            const sekolah = document.getElementById('sekolah').value.trim();
+
+            if (!username || !kelas || !sekolah) {
+                alert('Mohon lengkapi semua data!');
+                return;
+            }
+
+            // Simpan data user di localStorage
+            const user = {
+                username: username,
+                kelas: kelas,
+                sekolah: sekolah,
+                loginTime: new Date().toISOString()
+            };
+            
+            localStorage.setItem('mathuno_user', JSON.stringify(user));
+
+            // Simpan data user
+localStorage.setItem('mathuno_user', JSON.stringify(user));
+
+// Redirect ke lobby
+window.location.href = 'lobby.html';
+        });
+    </script>
+</body>
+</html>

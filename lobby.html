@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby - MathUNO</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info span {
+            font-size: 14px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            margin-right: 5px;
+        }
+
+        .status-dot.online {
+            background: #10b981;
+        }
+
+        .btn-logout {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .room-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-code {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 5px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        .input-code:focus {
+            border-color: #667eea;
+        }
+
+        /* Room Waiting Panel */
+        .room-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .room-panel.show {
+            display: block;
+        }
+
+        .room-panel h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .room-code-display {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin-bottom: 20px;
+        }
+
+        .room-code-hint {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .players-list {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .player-item {
+            background: #f9fafb;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid transparent;
+        }
+
+        .player-item.host {
+            border-color: #fbbf24;
+            background: #fef3c7;
+        }
+
+        .player-item.me {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .player-item .name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .player-item .badge {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .player-item .badge.host-badge {
+            background: #f59e0b;
+        }
+
+        .btn-start-game {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .btn-start-game:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-start-game:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .waiting-text {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            z-index: 2000;
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.success { background: #10b981; }
+        .notification.error { background: #ef4444; }
+        .notification.info { background: #3b82f6; }
+
+        @media (max-width: 768px) {
+            .room-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* CSS untuk Tab dan Leaderboard */
+.tab-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+.tab-btn { flex: 1; padding: 15px; background: rgba(255,255,255,0.2); border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+.tab-btn.active { background: white; color: #333; }
+.tab-content { display: none; animation: fadeIn 0.3s; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* CSS Leaderboard */
+.leaderboard-card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 20px; }
+.leaderboard-item { display: flex; justify-content: space-between; padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; background: #f9fafb; font-weight: bold; color: #333;}
+.leaderboard-item.top-1 { background: #fef3c7; border: 2px solid #fbbf24; }
+.leaderboard-item.top-2 { background: #e5e7eb; }
+.leaderboard-item.top-3 { background: #fed7aa; }
+
+/* CSS Rumus */
+.rumus-card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 15px; color: #333; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.rumus-card h3 { margin-bottom: 10px; color: #1f2937; border-bottom: 2px solid #667eea; padding-bottom: 5px; }
+.rumus-card p { font-size: 16px; margin-bottom: 5px; font-family: 'Courier New', monospace; background: #f3f4f6; padding: 5px 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🎴 MathUNO</h1>
+        <div class="user-info">
+            <span>
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Menghubungkan...</span>
+            </span>
+            <span id="userGreeting">Halo!</span>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        
+        <!-- Tab Menu -->
+<div class="tab-menu">
+    <button class="tab-btn active" onclick="openTab('main', this)">🏠 Area Bermain</button>
+    <button class="tab-btn" onclick="openTab('rumus', this)">📚 Rumus Dasar</button>
+</div>
+
+        <!-- TAB 1: MAIN MENU & LEADERBOARD -->
+        <div id="tab-main" class="tab-content active">
+            
+            <!-- SECTION 1: Buat / Gabung Room -->
+            <div id="mainSection">
+                <div class="room-section">
+                    <div class="card">
+                        <h2>🎮 Buat Room</h2>
+                        <p>Buat room baru untuk bermain dengan teman</p>
+                        <button class="btn-primary" id="btnCreateRoom" onclick="createRoom()">
+                            + BUAT ROOM
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <h2>🚪 Gabung Room</h2>
+                        <p>Masukkan kode room dari temanmu</p>
+                        <input type="text" class="input-code" id="roomCodeInput" placeholder="ABC123" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                        <button class="btn-primary" id="btnJoinRoom" onclick="joinRoom()">
+                            → GABUNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Room Waiting Panel -->
+            <div class="room-panel" id="roomPanel">
+                <h2>🏠 Room Kamu</h2>
+                <div class="room-code-display" id="roomCodeDisplay">------</div>
+                <p class="room-code-hint">Bagikan kode ini ke temanmu untuk bergabung</p>
+                <h3 style="color:#333;margin-bottom:10px;">👥 Pemain (<span id="playerCount">1</span>/4):</h3>
+                <div class="players-list" id="playersList"></div>
+                <button class="btn-start-game" id="btnStartGame" onclick="startGame()" disabled>
+                    ⏳ Menunggu Pemain Lain...
+                </button>
+                <p class="waiting-text" id="waitingText">Minimal 2 pemain untuk mulai</p>
+            </div>
+
+            <!-- SECTION 3: Leaderboard -->
+                        <!-- SECTION 3: Leaderboard -->
+            <div class="leaderboard-card">
+                <h2 style="color:#333; margin-bottom:15px; text-align:center;">🏆 Top 5 Global Leaderboard</h2>
+                <div id="leaderboardList">
+                    <!-- Data akan dimunculkan via JavaScript -->
+                    <p style="text-align:center; color:#999;">Belum ada data. Jadilah yang pertama!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: RUMUS DASAR -->
+        <div id="tab-rumus" class="tab-content">
+            <div class="rumus-card">
+                <h3>🔴 Eksponen</h3>
+                <p>aᵐ × aⁿ = aᵐ⁺ⁿ</p>
+                <p>aᵐ ÷ aⁿ = aᵐ⁻ⁿ</p>
+                <p>(aᵐ)ⁿ = aᵐˣⁿ</p>
+                <p>a⁰ = 1 (a ≠ 0)</p>
+                <p>a⁻ⁿ = 1 / aⁿ</p>
+                <p>√a = a^(1/2)</p>
+            </div>
+
+            <div class="rumus-card">
+                <h3>🔵 Logaritma</h3>
+                <p>a log b = c  ⇔  aᶜ = b</p>
+                <p>log (a × b) = log a + log b</p>
+                <p>log (a ÷ b) = log a - log b</p>
+                <p>log (aⁿ) = n × log a</p>
+                <p>a log a = 1</p>
+                <p>a log 1 = 0</p>
+            </div>
+
+            <div class="rumus-card">
+                <h3>🟢 Barisan & Deret</h3>
+                <p><strong>Aritmetika:</strong></p>
+                <p>Beda (b) = U₂ - U₁</p>
+                <p>Un = a + (n - 1)b</p>
+                <p>Sn = n/2 × (2a + (n - 1)b)</p>
+                <br>
+                <p><strong>Geometri:</strong></p>
+                <p>Rasio (r) = U₂ ÷ U₁</p>
+                <p>Un = a × rⁿ⁻¹</p>
+                <p>Sn = a(rⁿ - 1) / (r - 1) (jika r > 1)</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+
+    <script>
+        // ==========================================
+        // CEK LOGIN
+        // ==========================================
+        const userData = localStorage.getItem('mathuno_user');
+        if (!userData) {
+            alert('Silakan login terlebih dahulu!');
+            window.location.href = 'login.html';
+        }
+           function openTab(tabName, btnElement) {
+    // 1. Sembunyikan semua konten tab
+    const contents = document.querySelectorAll('.tab-content');
+    contents.forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // 2. Hilangkan efek aktif dari semua tombol
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 3. Tampilkan tab yang dipilih
+    document.getElementById('tab-' + tabName).classList.add('active');
+    
+    // 4. Berikan efek aktif ke tombol yang baru saja diklik
+    if (btnElement) {
+        btnElement.classList.add('active');
+    }
+}
+        const user = JSON.parse(userData);
+        document.getElementById('userGreeting').textContent = 
+            `Halo, ${user.username}! (${user.kelas})`;
+
+        // ==========================================
+        // SOCKET.IO CONNECTION
+        // ==========================================
+      const socket=io('http://localhost:3000');
+
+        let currentRoom = null;
+        let isHost = false;
+
+        // Status koneksi
+        socket.on('connect', () => {
+            console.log('✅ Terhubung ke server');
+            document.getElementById('statusDot').classList.add('online');
+            document.getElementById('statusText').textContent = 'Online';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Terputus dari server');
+            document.getElementById('statusDot').classList.remove('online');
+            document.getElementById('statusText').textContent = 'Offline';
+            showNotification('Terputus dari server!', 'error');
+        });
+
+        // ==========================================
+        // BUAT ROOM
+        // ==========================================
+        function createRoom() {
+            document.getElementById('btnCreateRoom').disabled = true;
+            document.getElementById('btnCreateRoom').textContent = '⏳ Membuat...';
+
+            socket.emit('createRoom', {
+                username: user.username,
+                kelas: user.kelas,
+                sekolah: user.sekolah
+            }, (response) => {
+                document.getElementById('btnCreateRoom').disabled = false;
+                document.getElementById('btnCreateRoom').textContent = '+ BUAT ROOM';
+
+                if (response.error) {
+                    showNotification(response.error, 'error');
+                    return;
+                }
+
+                currentRoom = response.roomCode;
+                isHost = true;
+
+                showRoomPanel(response.roomCode, response.players);
+                showNotification('Room berhasil dibuat!', 'success');
+            });
+        }
+
+        // ==========================================
+        // GABUNG ROOM
+        // ==========================================
+        function joinRoom() {
+            const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+
+            if (code.length !== 6) {
+                showNotification('Kode room harus 6 karakter!', 'error');
+                return;
+            }
+
+            document.getElementById('btnJoinRoom').disabled = true;
+            document.getElementById('btnJoinRoom').textContent = '⏳ Bergabung...';
+
+            socket.emit('joinRoom', {
+                roomCode: code,
+                username: user.username,
+                kelas: user.kelas,
+                sekolah: user.sekolah
+            }, (response) => {
+                document.getElementById('btnJoinRoom').disabled = false;
+                document.getElementById('btnJoinRoom').textContent = '→ GABUNG';
+
+                if (response.error) {
+                    showNotification(response.error, 'error');
+                    return;
+                }
+
+                currentRoom = response.roomCode;
+                isHost = false;
+
+                showRoomPanel(response.roomCode, response.players);
+                showNotification('Berhasil bergabung!', 'success');
+            });
+        }
+
+        // ==========================================
+        // TAMPILKAN PANEL ROOM
+        // ==========================================
+        function showRoomPanel(roomCode, players) {
+            document.getElementById('mainSection').style.display = 'none';
+            document.getElementById('roomPanel').classList.add('show');
+            document.getElementById('roomCodeDisplay').textContent = roomCode;
+
+            updatePlayersList(players);
+        }
+
+        // ==========================================
+        // UPDATE DAFTAR PEMAIN
+        // ==========================================
+        function updatePlayersList(players) {
+            const list = document.getElementById('playersList');
+            list.innerHTML = '';
+
+            players.forEach((player, index) => {
+                const item = document.createElement('div');
+                item.className = 'player-item';
+                
+                if (player.username === user.username) {
+                    item.classList.add('me');
+                }
+                
+                if (index === 0) {
+                    item.classList.add('host');
+                }
+
+                item.innerHTML = `
+                    <div>
+                        <span class="name">👤 ${player.username}</span>
+                        <span style="color:#666;font-size:12px;margin-left:8px;">(${player.kelas})</span>
+                    </div>
+                    <div>
+                        ${index === 0 ? '<span class="badge host-badge">HOST</span>' : ''}
+                        ${player.username === user.username ? '<span class="badge">KAMU</span>' : ''}
+                    </div>
+                `;
+
+                list.appendChild(item);
+            });
+
+            document.getElementById('playerCount').textContent = players.length;
+
+            // Update tombol mulai
+            const btnStart = document.getElementById('btnStartGame');
+            const waitingText = document.getElementById('waitingText');
+
+            if (isHost) {
+                if (players.length >= 2) {
+                    btnStart.disabled = false;
+                    btnStart.textContent = '🎮 MULAI PERMAINAN';
+                    waitingText.textContent = `Siap dimulai! (${players.length} pemain)`;
+                } else {
+                    btnStart.disabled = true;
+                    btnStart.textContent = '⏳ Menunggu Pemain Lain...';
+                    waitingText.textContent = 'Minimal 2 pemain untuk mulai';
+                }
+            } else {
+                btnStart.disabled = true;
+                btnStart.textContent = '⏳ Menunggu Host...';
+                waitingText.textContent = 'Hanya host yang bisa memulai';
+            }
+        }
+
+        // ==========================================
+        // PEMAIN BARU GABUNG
+        // ==========================================
+        socket.on('playerJoined', ({ players }) => {
+            updatePlayersList(players);
+            showNotification('Pemain baru bergabung!', 'info');
+        });
+
+        // ==========================================
+        // PEMAIN KELUAR
+        // ==========================================
+        socket.on('playerLeft', ({ username, players }) => {
+            updatePlayersList(players);
+            showNotification(`${username} keluar dari room`, 'info');
+        });
+
+        // ==========================================
+        // MULAI GAME
+        // ==========================================
+        function startGame() {
+            if (!isHost) {
+                showNotification('Hanya host yang bisa memulai!', 'error');
+                return;
+            }
+
+            document.getElementById('btnStartGame').disabled = true;
+            document.getElementById('btnStartGame').textContent = '⏳ Memulai...';
+
+            socket.emit('startGame', { roomCode: currentRoom }, (response) => {
+                if (response.error) {
+                    showNotification(response.error, 'error');
+                    document.getElementById('btnStartGame').disabled = false;
+                    document.getElementById('btnStartGame').textContent = '🎮 MULAI PERMAINAN';
+                    return;
+                }
+                // gameStarted event akan handle redirect
+            });
+        }
+
+              // ==========================================
+        // GAME DIMULAI — REDIRECT KE GAME.HTML
+        // ==========================================
+        socket.on('gameStarted', ({ hand, discard, players, currentTurn, yourSocketId }) => {
+            localStorage.setItem('mathuno_game', JSON.stringify({
+                roomCode: currentRoom,
+                hand: hand,
+                discard: discard,
+                players: players,
+                currentTurn: currentTurn,
+                yourSocketId: yourSocketId
+            }));
+
+            showNotification('🎮 Game dimulai!', 'success');
+
+            setTimeout(() => {
+                window.location.href = 'game.html';
+            }, 1000);
+        });
+
+        // ==========================================
+        // LOGOUT
+        // ==========================================
+        function logout() {
+            if (confirm('Yakin mau logout?')) {
+                if (currentRoom) {
+                    socket.emit('leaveRoom', { roomCode: currentRoom });
+                }
+                localStorage.removeItem('mathuno_user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // ==========================================
+        // NOTIFICATION
+        // ==========================================
+        function showNotification(message, type = 'info') {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = `notification show ${type}`;
+
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 2500);
+        }
+        // ==========================================
+// LOGIKA LEADERBOARD
+// ==========================================
+function loadLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    // Ambil data dari localStorage (jika belum ada, buat array kosong)
+    let highScores = JSON.parse(localStorage.getItem('mathuno_leaderboard')) || [];
+    
+    // Urutkan dari skor tertinggi ke terendah
+    highScores.sort((a, b) => b.score - a.score);
+    
+    // Ambil 5 teratas
+    const top5 = highScores.slice(0, 5);
+
+    if (top5.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#999;">Belum ada data. Jadilah yang pertama!</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    top5.forEach((player, index) => {
+        const item = document.createElement('div');
+        item.className = 'leaderboard-item';
+        if (index === 0) item.classList.add('top-1');
+        if (index === 1) item.classList.add('top-2');
+        if (index === 2) item.classList.add('top-3');
+
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        
+        item.innerHTML = `
+            <span>${medal} ${player.username} (${player.kelas})</span>
+            <span>${player.score} Poin</span>
+        `;
+        list.appendChild(item);
+    });
+}
+
+// Panggil fungsi saat halaman dimuat
+loadLeaderboard();
+
+
+    </script>
+</body>
+</html>

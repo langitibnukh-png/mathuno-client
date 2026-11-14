@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game - MathUNO</title>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+body{background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);min-height:100vh;padding:15px;color:white}
+.game-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.3);backdrop-filter:blur(10px);padding:12px 20px;border-radius:12px;margin-bottom:15px}
+.room-info{display:flex;align-items:center;gap:15px}
+.room-code{background:#f59e0b;color:#000;padding:5px 12px;border-radius:6px;font-weight:bold;font-size:14px}
+.timer{background:#10b981;color:white;padding:8px 20px;border-radius:8px;font-weight:bold;font-size:18px;min-width:100px;text-align:center}
+.timer.warning{background:#ef4444;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.players-bar{display:flex;justify-content:center;gap:15px;margin-bottom:15px;flex-wrap:wrap}
+.player-card{background:rgba(255,255,255,.1);backdrop-filter:blur(10px);padding:10px 18px;border-radius:10px;display:flex;align-items:center;gap:10px;border:2px solid transparent}
+.player-card.active{border-color:#fbbf24;background:rgba(251,191,36,.2);transform:scale(1.05)}
+.player-card.me{border-color:#3b82f6}
+.player-avatar{font-size:24px}
+.player-name{font-size:14px;font-weight:600}
+.player-cards{background:#ef4444;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:bold}
+.player-score{font-size:11px;opacity:.7}
+.table-area{display:flex;justify-content:center;align-items:center;gap:20px;margin:20px 0;min-height:180px}
+.deck-pile{position:relative;width:100px;height:140px}
+.deck-card{position:absolute;width:100px;height:140px;background:linear-gradient(135deg,#1f2937,#111827);border-radius:12px;border:3px solid white;display:flex;flex-direction:column;justify-content:center;align-items:center;cursor:pointer;transition:transform .2s;color:white}
+.deck-card:hover{transform:translateY(-5px)}
+.deck-count{font-size:14px;margin-top:5px;opacity:.7}
+.discard-pile{width:100px;height:140px;background:white;border-radius:12px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#333;font-weight:bold;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,.3)}
+.discard-pile.logaritma{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white}
+.discard-pile.eksponen{background:linear-gradient(135deg,#ef4444,#b91c1c);color:white}
+.discard-pile.barisan{background:linear-gradient(135deg,#10b981,#047857);color:white}
+.discard-pile.wild{background:linear-gradient(135deg,#1f2937,#000);color:white}
+.discard-pile .card-label{font-size:12px;opacity:.8}
+.discard-pile .card-value{font-size:48px;margin:10px 0}
+.hand-area{background:rgba(0,0,0,.3);backdrop-filter:blur(10px);padding:20px;border-radius:15px;margin-top:15px}
+.hand-title{font-size:14px;margin-bottom:12px;opacity:.8}
+.hand-cards{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;min-height:150px}
+.card{width:90px;height:130px;background:white;border-radius:10px;display:flex;flex-direction:column;justify-content:space-between;padding:8px;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 4px 8px rgba(0,0,0,.3);border:3px solid white}
+.card:hover{transform:translateY(-15px);box-shadow:0 12px 20px rgba(0,0,0,.5)}
+.card.disabled{opacity:.5;cursor:not-allowed}
+.card.disabled:hover{transform:none}
+.card.eksponen{background:linear-gradient(135deg,#ef4444,#b91c1c);color:white}
+.card.logaritma{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white}
+.card.barisan{background:linear-gradient(135deg,#10b981,#047857);color:white}
+.card.wild{background:linear-gradient(135deg,#1f2937,#000);color:white}
+.card-top{display:flex;justify-content:space-between;font-size:14px;font-weight:bold}
+.card-center{text-align:center;font-size:28px;font-weight:bold}
+.card-bottom{display:flex;justify-content:space-between;font-size:14px;font-weight:bold;transform:rotate(180deg)}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);display:none;justify-content:center;align-items:center;z-index:1000;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:white;border-radius:20px;padding:30px;max-width:500px;width:100%;color:#333;animation:slideUp .3s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.modal-materi{display:inline-block;padding:5px 15px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:15px;color:white}
+.modal-materi.eksponen{background:#ef4444}
+.modal-materi.logaritma{background:#3b82f6}
+.modal-materi.barisan{background:#10b981}
+.modal-soal{font-size:22px;font-weight:600;margin-bottom:25px;text-align:center;color:#1f2937}
+.modal-pilihan{display:grid;gap:10px;margin-bottom:20px}
+.pilihan-btn{padding:15px 20px;background:#f3f4f6;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;cursor:pointer;text-align:left;font-weight:500}
+.pilihan-btn:hover{background:#e0e7ff;border-color:#667eea}
+.pilihan-btn.selected{background:#667eea;border-color:#667eea;color:white}
+.modal-timer{text-align:center;font-size:18px;font-weight:bold;color:#ef4444;margin-bottom:15px}
+.btn-submit{width:100%;padding:15px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+.notification{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:white;padding:15px 30px;border-radius:10px;font-weight:600;z-index:2000;display:none}
+.notification.show{display:block}
+.notification.success{background:#10b981}
+.notification.error{background:#ef4444}
+.notification.info{background:#3b82f6}
+.turn-indicator{text-align:center;padding:10px;border-radius:10px;margin-bottom:15px;font-weight:600}
+.turn-indicator.my-turn{background:rgba(16,185,129,.3);border:2px solid #10b981}
+.turn-indicator.waiting{background:rgba(239,68,68,.3);border:2px solid #ef4444}
+/* CSS Quick Chat */
+.quick-chat-container {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    border-radius: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 2000;
+}
+.quick-chat-container.show { display: flex; }
+.quick-chat-btn {
+    background: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: left;
+    transition: 0.2s;
+}
+.quick-chat-btn:hover { background: #667eea; color: white; }
+.toggle-chat-btn {
+    position: fixed;
+    bottom: 150px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #f59e0b;
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 2001;
+}
+.chat-bubble {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 9999;
+    border: 2px solid #f59e0b;
+    animation: popIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+    text-align: center;
+}
+@keyframes popIn { from { opacity: 0; transform: translateX(-50%) scale(0.5); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+.shake-screen {
+    animation: shake 0.5s;
+    animation-iteration-count: 1;
+}
+</style>
+</head>
+<body>
+<div class="game-header">
+  
+<div class="room-info"><span>Room:</span><span class="room-code" id="roomCodeDisplay">------</span></div>
+<div class="timer" id="timer">⏱️ 90</div>
+<div><button onclick="exitGame()" style="background:#ef4444;color:white;border:none;padding:8px 15px;border-radius:8px;cursor:pointer">Keluar</button></div>
+</div>
+<div class="turn-indicator waiting" id="turnIndicator">⏳ Menunggu giliran...</div>
+<div class="players-bar" id="playersBar"></div>
+<div class="table-area">
+<div class="deck-pile" onclick="drawCard()"><div class="deck-card"><div style="font-size:32px">🎴</div><div class="deck-count" id="deckCount">0</div></div></div>
+<div class="discard-pile" id="discardPile"><div class="card-label" id="discardLabel">-</div><div class="card-value" id="discardValue">-</div><div class="card-label" id="discardLabelBottom">-</div></div>
+</div>
+<div class="hand-area"><div class="hand-title">🎴 Kartu Kamu (klik untuk mainkan):</div><div class="hand-cards" id="handCards"></div></div>
+<div class="notification" id="notification"></div>
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal">
+<div class="modal-materi" id="modalMateri">EKSPONEN</div>
+<div class="modal-soal" id="modalSoal">Soal akan muncul di sini</div>
+<div class="modal-timer" id="modalTimer">⏱️ 90 detik</div>
+<div class="modal-pilihan" id="modalPilihan"></div>
+<button class="btn-submit" id="btnSubmit" onclick="submitAnswer()" disabled>JAWAB</button>
+</div>
+</div>
+<!-- Tombol Emoji Cepat (Rapikan di sini) -->
+<div style="position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 1500;">
+    <button onclick="sendEmoji('👍')" style="font-size: 24px; background: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">👍</button>
+    <button onclick="sendEmoji('😂')" style="font-size: 24px; background: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">😂</button>
+    <button onclick="sendEmoji('😭')" style="font-size: 24px; background: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">😭</button>
+</div>
+
+<!-- Tombol Toggle Quick Chat -->
+<button class="toggle-chat-btn" onclick="toggleChat()">💬</button>
+
+<!-- Container Quick Chat -->
+<div class="quick-chat-container" id="quickChatContainer">
+    <button class="quick-chat-btn" onclick="sendQuickChat('Semangat! 🔥')">Semangat! 🔥</button>
+    <button class="quick-chat-btn" onclick="sendQuickChat('Ayo lebih cepat! ⏱️')">Ayo lebih cepat! ⏱️</button>
+    <button class="quick-chat-btn" onclick="sendQuickChat('Wkwkwk 😂')">Wkwkwk 😂</button>
+    <button class="quick-chat-btn" onclick="sendQuickChat('Jangan nyerah! 💪')">Jangan nyerah! 💪</button>
+    <button class="quick-chat-btn" onclick="sendQuickChat('Maaf ya 🙏')">Maaf ya 🙏</button>
+</div>
+<script>
+const userData=localStorage.getItem('mathuno_user');
+const gameData=localStorage.getItem('mathuno_game');
+if(!userData||!gameData){alert('Data game tidak ditemukan! Kembali ke lobby.');window.location.href='lobby.html'}
+
+const user=JSON.parse(userData);
+const initialGame=JSON.parse(gameData);
+const socket=io('http://localhost:3000');
+// ==========================================
+// AUDIO & EMOJI
+// ==========================================
+const audioBenar = new Audio('https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg');
+const audioSalah = new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg');
+const audioMenang = new Audio('https://actions.google.com/sounds/v1/crowds/children_cheering.ogg');
+const audioPetir = new Audio('https://actions.google.com/sounds/v1/weather/thunder_crack.ogg');
+// ==========================================
+// FUNGSI QUICK CHAT
+// ==========================================
+function toggleChat() {
+    document.getElementById('quickChatContainer').classList.toggle('show');
+}
+
+function sendQuickChat(message) {
+    // 1. Kirim pesan ke server (agar muncul di layar lawan)
+    socket.emit('sendQuickChat', {
+        roomCode: currentRoom,
+        username: user.username,
+        message: message
+    });
+    
+    // 2. Bacakan pesan menggunakan suara
+    let textToRead = message.replace(/[^\w\s]/gi, ''); // Hapus emoji agar suara lebih jelas
+    let speech = new SpeechSynthesisUtterance(textToRead);
+    speech.lang = 'id-ID'; // Set bahasa Indonesia
+    speech.rate = 1.2;     // Kecepatan bicara (1 = normal, 2 = cepat)
+    speech.pitch = 1.2;    // Nada suara (lebih tinggi biar seru)
+    
+    window.speechSynthesis.speak(speech);
+
+    // 3. Tutup menu chat
+    toggleChat();
+}
+
+
+socket.on('receiveQuickChat', (data) => {
+    // 1. Tampilkan bubble chat
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.innerHTML = `<span style="color: #f59e0b;">${data.username}:</span> ${data.message}`;
+    document.body.appendChild(bubble);
+
+    // 2. Bacakan pesan yang diterima
+    let textToRead = data.message.replace(/[^\w\s]/gi, ''); 
+    let speech = new SpeechSynthesisUtterance(textToRead);
+    speech.lang = 'id-ID';
+    speech.rate = 1.2;
+    speech.pitch = 1.2;
+    
+    window.speechSynthesis.speak(speech);
+
+    // 3. Hapus bubble setelah 3 detik
+    setTimeout(() => {
+        if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+    }, 3000);
+});
+function playSound(type) {
+    if (type === 'benar') { audioBenar.currentTime = 0; audioBenar.play(); }
+    if (type === 'salah') { audioSalah.currentTime = 0; audioSalah.play(); }
+    if (type === 'menang') { audioMenang.currentTime = 0; audioMenang.play(); }
+}
+
+// Fungsi Emoji
+function sendEmoji(emoji) {
+    socket.emit('sendEmoji', { roomCode: currentRoom, emoji: emoji });
+}
+
+// Listener Emoji dari Server
+socket.on('receiveEmoji', (data) => {
+    // Menampilkan emoji besar di tengah layar selama 1 detik
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = data.emoji;
+    emojiDiv.style.position = 'fixed';
+    emojiDiv.style.top = '50%';
+    emojiDiv.style.left = '50%';
+    emojiDiv.style.transform = 'translate(-50%, -50%) scale(0)';
+    emojiDiv.style.fontSize = '100px';
+    emojiDiv.style.zIndex = '9999';
+    emojiDiv.style.transition = 'all 0.3s ease';
+    document.body.appendChild(emojiDiv);
+
+    // Animasi Pop-up
+    setTimeout(() => { emojiDiv.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+    
+    // Hilangkan setelah 1.5 detik
+    setTimeout(() => {
+        emojiDiv.style.transform = 'translate(-50%, -50%) scale(0)';
+        setTimeout(() => document.body.removeChild(emojiDiv), 300);
+    }, 1500);
+});
+
+let currentRoom=initialGame.roomCode;
+let myHand=initialGame.hand||[];
+let currentTurn=initialGame.currentTurn;
+let mySocketId=initialGame.yourSocketId||socket.id;
+let players=initialGame.players||[];
+let selectedCard=null;
+let selectedAnswer=null;
+let currentSoal=null;
+let timerInterval=null;
+let timeLeft=90;
+
+document.getElementById('roomCodeDisplay').textContent=currentRoom;
+updateDiscard(initialGame.discard);
+document.getElementById('deckCount').textContent = initialGame.deckCount || 0;
+renderPlayers();
+renderHand();
+
+// SINKRONISASI ID SOCKET SAAT PINDAH HALAMAN
+socket.on('connect', () => {
+    socket.emit('rejoinRoom', { roomCode: currentRoom, username: user.username });
+});
+
+function renderHand(){
+const c=document.getElementById('handCards');
+c.innerHTML='';
+if(myHand.length===0){c.innerHTML='<p style="opacity:.6;text-align:center;width:100%">Tidak ada kartu</p>';return}
+myHand.forEach(card=>{
+const el=document.createElement('div');
+const isMyTurn=currentTurn===mySocketId;
+el.className='card '+card.color+(isMyTurn?'':' disabled');
+el.onclick=()=>{if(isMyTurn)playCard(card)};
+const label=card.color==='wild'?'WILD':card.color==='eksponen'?'EKS':card.color==='logaritma'?'LOG':'BAR';
+el.innerHTML='<div class="card-top"><span>'+card.value+'</span><span>'+label+'</span></div><div class="card-center">'+card.value+'</div><div class="card-bottom"><span>'+card.value+'</span><span>'+label+'</span></div>';
+c.appendChild(el);
+});
+}
+function renderPlayers(){
+const c=document.getElementById('playersBar');
+c.innerHTML='';
+players.forEach(p=>{
+const isActive=p.id===currentTurn;
+const isMe=p.id===mySocketId;
+const el=document.createElement('div');
+el.className='player-card'+(isActive?' active':'')+(isMe?' me':'');
+el.innerHTML='<div class="player-avatar">👤</div><div><div class="player-name">'+p.username+(isMe?' (Kamu)':'')+'</div><div class="player-score">Skor: '+(p.score||0)+'</div></div><div class="player-cards">'+(p.cardCount||0)+'</div>';
+c.appendChild(el);
+});
+const ind=document.getElementById('turnIndicator');
+if(currentTurn===mySocketId){ind.className='turn-indicator my-turn';ind.textContent='🎯 Giliranmu! Pilih kartu untuk dimainkan.'}
+else{const cp=players.find(p=>p.id===currentTurn);const nm=cp?cp.username:'...';ind.className='turn-indicator waiting';ind.textContent='⏳ Menunggu giliran '+nm+'...'}
+}
+function updateDiscard(card){
+if(!card)return;
+const p=document.getElementById('discardPile');
+p.className='discard-pile '+card.color;
+document.getElementById('discardValue').textContent=card.value;
+document.getElementById('discardLabel').textContent=card.color.toUpperCase();
+document.getElementById('discardLabelBottom').textContent=card.color.toUpperCase();
+}
+function playCard(card){
+    if(currentTurn !== mySocketId) return; // Pastikan gilirannya
+    
+    selectedCard=card;
+    selectedAnswer=null;
+    
+    // Minta soal ke server (BUKAN SOAL DUMMY LAGI)
+    socket.emit('mintaSoal', { 
+        roomCode: currentRoom, 
+        cardId: card.id, 
+        color: card.color, 
+        level: card.level 
+    }, (res) => {
+        if(res.error) {
+            showNotification(res.error, 'error');
+            return;
+        }
+        
+        currentSoal = res.soal;
+
+        document.getElementById('modalMateri').textContent=card.color.toUpperCase();
+        document.getElementById('modalMateri').className='modal-materi '+card.color;
+        document.getElementById('modalSoal').textContent=currentSoal.soal;
+        
+        const pc=document.getElementById('modalPilihan');
+        pc.innerHTML='';
+        Object.keys(currentSoal.pilihan).forEach(k=>{
+            const b=document.createElement('button');
+            b.className='pilihan-btn';
+            b.textContent=k+'. '+currentSoal.pilihan[k];
+            b.onclick=()=>selectAnswer(k,b);
+            pc.appendChild(b);
+        });
+        
+        document.getElementById('btnSubmit').disabled=true;
+        document.getElementById('btnSubmit').textContent='JAWAB';
+        document.getElementById('btnSubmit').onclick=submitAnswer;
+        document.getElementById('modalOverlay').classList.add('show');
+        startTimer();
+    });
+}
+function selectAnswer(key,btn){
+selectedAnswer=key;
+document.querySelectorAll('.pilihan-btn').forEach(b=>b.classList.remove('selected'));
+btn.classList.add('selected');
+document.getElementById('btnSubmit').disabled=false;
+}
+function submitAnswer(){
+    if(!selectedAnswer || !selectedCard) return;
+    
+    // 1. Matikan tombol agar tidak bisa diklik dua kali
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.textContent = '⏳ Memproses...';
+
+    stopTimer();
+    
+    socket.emit('playCard',{roomCode:currentRoom,cardId:selectedCard.id,answer:selectedAnswer},(res)=>{
+        document.getElementById('modalOverlay').classList.remove('show');
+        
+        // 2. Kembalikan tombol ke keadaan semula (untuk soal berikutnya)
+        btn.disabled = false;
+        btn.textContent = 'JAWAB';
+        
+        if(res.error){
+            showNotification(res.error,'error');
+            return;
+        }
+        
+        if(!res.success){
+            showNotification('❌ Salah! Jawaban: '+res.correct,'error');
+            playSound('salah');
+        } else {
+            showNotification('✅ Benar!','success');
+            playSound('benar');
+        }
+    });
+}
+function drawCard(){
+if(currentTurn!==mySocketId){showNotification('Bukan giliranmu!','error');return}
+socket.emit('drawCard',{roomCode:currentRoom},(res)=>{
+if(res.error){showNotification(res.error,'error');return}
+showNotification('🎴 Ambil 1 kartu','info');
+});
+}
+function startTimer(){
+    timeLeft=90;
+    updateTimerDisplay();
+    timerInterval=setInterval(()=>{
+        timeLeft--;
+        updateTimerDisplay();
+        if(timeLeft<=0){
+            stopTimer();
+            document.getElementById('modalOverlay').classList.remove('show');
+            showNotification('⏰ Waktu habis! Ambil 1 kartu.', 'error');
+            
+            // Kirim jawaban kosong ke server (dianggap salah)
+            if(selectedCard){
+                socket.emit('playCard', {
+                    roomCode: currentRoom, 
+                    cardId: selectedCard.id, 
+                    answer: 'WAKTU_HABIS'
+                }, (res) => {
+                    // Biarkan gameState yang mengurus update kartu
+                });
+            }
+        }
+    },1000);
+}
+function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}}
+function updateTimerDisplay(){
+const t=document.getElementById('timer');
+const mt=document.getElementById('modalTimer');
+t.textContent='⏱️ '+timeLeft;
+mt.textContent='⏱️ '+timeLeft+' detik';
+if(timeLeft<=10){t.classList.add('warning')}else{t.classList.remove('warning')}
+}
+socket.on('gameState',(s)=>{
+myHand=s.hand||[];
+currentTurn=s.currentTurn;
+mySocketId=s.yourSocketId||mySocketId;
+players=s.players||[];
+updateDiscard(s.discard);
+document.getElementById('deckCount').textContent=s.deckCount||0;
+renderPlayers();
+renderHand();
+});
+socket.on('showNotification', (msg) => {
+    showNotification(msg, 'info');
+});
+// Listener saat ada pemain yang tinggal 1 kartu (UNO!)
+socket.on('unoAlert', (data) => {
+    // 1. Mainkan suara petir
+    audioPetir.currentTime = 0;
+    audioPetir.play();
+
+    // 2. Efek getar layar
+    document.body.classList.add('shake-screen');
+    setTimeout(() => {
+        document.body.classList.remove('shake-screen');
+    }, 500);
+
+    // 3. Tembakkan petir/kembang api warna kuning
+    confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.1 },
+        colors: ['#fbbf24', '#f59e0b', '#ef4444'],
+        startVelocity: 60
+    });
+
+    // 4. Munculkan tulisan besar di tengah layar
+    const unoText = document.createElement('div');
+    unoText.textContent = '⚡ UNO! ⚡\n' + data.username + ' tinggal 1 kartu!';
+    unoText.style.position = 'fixed';
+    unoText.style.top = '50%';
+    unoText.style.left = '50%';
+    unoText.style.transform = 'translate(-50%, -50%) scale(0.5)';
+    unoText.style.color = '#fbbf24';
+    unoText.style.fontSize = '40px';
+    unoText.style.fontWeight = 'bold';
+    unoText.style.textAlign = 'center';
+    unoText.style.textShadow = '0 0 20px #ef4444';
+    unoText.style.zIndex = '9999';
+    unoText.style.transition = 'all 0.3s ease';
+    unoText.style.whiteSpace = 'pre-line';
+    
+    document.body.appendChild(unoText);
+
+    // Animasi Pop-up
+    setTimeout(() => { unoText.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+
+    // Hilangkan setelah 3 detik
+    setTimeout(() => {
+        unoText.style.transform = 'translate(-50%, -50%) scale(0.5)';
+        setTimeout(() => document.body.removeChild(unoText), 300);
+    }, 3000);
+});
+socket.on('cardDrawn',(d)=>{console.log('Kartu diambil:',d.card)});
+socket.on('playerLeft',(d)=>{players=d.players;renderPlayers();showNotification(d.username+' keluar dari game','info')});
+socket.on('gameOver', (d) => {
+    playSound('menang');
+    
+    // ==========================================
+    // SIMPAN SKOR KE LEADERBOARD
+    // ==========================================
+    const winnerData = d.players.find(p => p.username === user.username);
+    if (winnerData) {
+        let highScores = JSON.parse(localStorage.getItem('mathuno_leaderboard')) || [];
+        highScores.push({
+            username: user.username,
+            kelas: user.kelas,
+            score: winnerData.score
+        });
+        localStorage.setItem('mathuno_leaderboard', JSON.stringify(highScores));
+    }
+    // ==========================================
+
+    // ... (sisa kode konfeti) ...// <-- TAMBAHKAN INI
+    // ... (kode konfeti) ...
+    var duration = 3 * 1000;
+    var animationEnd = Date.now() + duration;
+    var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    var interval = setInterval(function() {
+        var timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) {
+            return clearInterval(interval);
+        }
+        var particleCount = 50 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+    }, 250);
+
+    // 2. Tampilkan popup pemenang setelah 1 detik
+    setTimeout(() => {
+        alert('🏆 PEMENANG: ' + d.winner + '\n\nSkor Akhir:\n' + d.players.map(p => `${p.username}: ${p.score}`).join('\n'));
+        localStorage.removeItem('mathuno_game');
+        window.location.href = 'lobby.html';
+    }, 1500);
+});
+function exitGame(){
+if(confirm('Yakin mau keluar? Progress game akan hilang!')){
+socket.emit('leaveRoom',{roomCode:currentRoom});
+localStorage.removeItem('mathuno_game');
+window.location.href='lobby.html';
+}
+}
+function showNotification(msg,type){
+const n=document.getElementById('notification');
+n.textContent=msg;
+n.className='notification show '+(type||'info');
+setTimeout(()=>n.classList.remove('show'),2500);
+}
+
+</script>
+</body>
+</html>
