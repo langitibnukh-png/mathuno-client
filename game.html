@@ -534,19 +534,31 @@ socket.on('playerLeft',(d)=>{players=d.players;renderPlayers();showNotification(
 socket.on('gameOver', (d) => {
     playSound('menang');
     
-    // ==========================================
-    // SIMPAN SKOR KE LEADERBOARD
+        // ==========================================
+    // SIMPAN & AKUMULASI SKOR KE LEADERBOARD
     // ==========================================
     const winnerData = d.players.find(p => p.username === user.username);
     if (winnerData) {
         let highScores = JSON.parse(localStorage.getItem('mathuno_leaderboard')) || [];
-        highScores.push({
-            username: user.username,
-            kelas: user.kelas,
-            score: winnerData.score
-        });
+        
+        // Cari apakah pemain ini sudah ada di leaderboard
+        const existingPlayerIndex = highScores.findIndex(p => p.username === user.username && p.kelas === user.kelas);
+        
+        if (existingPlayerIndex !== -1) {
+            // Jika sudah ada, TAMBAHKAN skornya
+            highScores[existingPlayerIndex].score += winnerData.score;
+        } else {
+            // Jika belum ada, BUAT data baru
+            highScores.push({
+                username: user.username,
+                kelas: user.kelas,
+                score: winnerData.score
+            });
+        }
+        
         localStorage.setItem('mathuno_leaderboard', JSON.stringify(highScores));
     }
+    // ==========================================
     // ==========================================
 
     // ... (sisa kode konfeti) ...// <-- TAMBAHKAN INI
