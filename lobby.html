@@ -317,10 +317,11 @@
 
     <div class="container">
         
-        <!-- Tab Menu -->
+       <!-- Tab Menu -->
 <div class="tab-menu">
     <button class="tab-btn active" onclick="openTab('main', this)">🏠 Area Bermain</button>
     <button class="tab-btn" onclick="openTab('rumus', this)">📚 Rumus Dasar</button>
+    <button class="tab-btn" onclick="openTab('aturan', this)">📜 Aturan Main</button>
 </div>
 
         <!-- TAB 1: MAIN MENU & LEADERBOARD -->
@@ -405,6 +406,50 @@
                 <p>Rasio (r) = U₂ ÷ U₁</p>
                 <p>Un = a × rⁿ⁻¹</p>
                 <p>Sn = a(rⁿ - 1) / (r - 1) (jika r > 1)</p>
+            </div>
+        </div>
+                <!-- TAB 3: ATURAN MAIN -->
+        <div id="tab-aturan" class="tab-content">
+            <div class="rumus-card">
+                <h3>🎯 Tujuan Permainan</h3>
+                <p>Menjadi pemain pertama yang menghabiskan semua kartu di tangan.</p>
+            </div>
+
+            <div class="rumus-card">
+                <h3>🃏 Cara Bermain</h3>
+                <p>1. Pemain bergiliran membuang kartu dari tangan ke meja.</p>
+                <p>2. Kartu yang dibuang harus memiliki <strong>warna yang sama</strong> ATAU <strong>angka yang sama</strong> dengan kartu di meja.</p>
+                <p>3. Setiap kali membuang kartu, pemain harus menjawab soal matematika dalam waktu 90 detik.</p>
+                <p>4. Jika jawaban <strong>BENAR</strong>, kartu berhasil dibuang dan mendapat poin. Jika <strong>SALAH</strong>, pemain harus mengambil 1 kartu dari deck (tumpukan).</p>
+                <p>5. Jika tidak punya kartu yang cocok, klik tumpukan kartu (deck) untuk mengambil 1 kartu baru.</p>
+            </div>
+
+            <div class="rumus-card">
+                <h3>⚡ Kartu Aksi & Spesial</h3>
+                <p><strong>Skip (🚫):</strong> Pemain berikutnya kehilangan gilirannya.</p>
+                <p><strong>Reverse (🔄):</strong> Arah putaran berbalik. (Jika hanya 2 pemain, giliran tetap di Anda).</p>
+                <p><strong>Draw Two (+2):</strong> Pemain berikutnya mengambil 2 kartu dan kehilangan giliran.</p>
+                <p><strong>Wild (🌈):</strong> Kartu bebas. Bisa dimainkan kapan saja, apa pun warna/angka di meja.</p>
+                <p><strong>Wild Draw Four (+4):</strong> Kartu bebas. Pemain berikutnya mengambil 4 kartu.</p>
+                <p><strong>Challenge (⭐):</strong> Soal dengan level HOTS (Higher Order Thinking Skills) dan poin lebih besar.</p>
+            </div>
+
+            <div class="rumus-card">
+                <h3>🎯 Sistem Poin</h3>
+                <p>Setiap jawaban benar akan mendapatkan poin berdasarkan tingkat kesulitan soal:</p>
+                <p>🟢 Mudah: <strong>10 Poin</strong></p>
+                <p>🟡 Sedang: <strong>15 Poin</strong></p>
+                <p>🟠 Sulit: <strong>20 Poin</strong></p>
+                <p>🔴 HOTS (Challenge): <strong>30 Poin</strong></p>
+                <p>Poin akan diakumulasikan dan ditampilkan di Leaderboard!</p>
+            </div>
+
+            <div class="rumus-card">
+                <h3>💡 Fitur Tambahan</h3>
+                <p>📚 <strong>Tab Rumus:</strong> Jika lupa rumus, buka tab "Rumus Dasar" sebelum bermain.</p>
+                <p>💬 <strong>Quick Chat:</strong> Gunakan tombol 💬 untuk mengirim pesan cepat ke lawan.</p>
+                <p>👍 <strong>Emoji:</strong> Gunakan tombol emoji di pojok kanan bawah untuk bereaksi.</p>
+                <p>🔊 <strong>Efek Suara:</strong> Aktifkan suara untuk pengalaman bermain yang lebih seru.</p>
             </div>
         </div>
 
