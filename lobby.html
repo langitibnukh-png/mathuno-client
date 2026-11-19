@@ -731,18 +731,14 @@
             }, 2500);
         }
         // ==========================================
-// LOGIKA LEADERBOARD
 // ==========================================
-function loadLeaderboard() {
+// LOGIKA LEADERBOARD (DARI SERVER)
+// ==========================================
+function renderLeaderboard(data) {
     const list = document.getElementById('leaderboardList');
-    // Ambil data dari localStorage (jika belum ada, buat array kosong)
-    let highScores = JSON.parse(localStorage.getItem('mathuno_leaderboard')) || [];
-    
-    // Urutkan dari skor tertinggi ke terendah
-    highScores.sort((a, b) => b.score - a.score);
     
     // Ambil 5 teratas
-    const top5 = highScores.slice(0, 5);
+    const top5 = data.slice(0, 5);
 
     if (top5.length === 0) {
         list.innerHTML = '<p style="text-align:center; color:#999;">Belum ada data. Jadilah yang pertama!</p>';
@@ -767,8 +763,15 @@ function loadLeaderboard() {
     });
 }
 
-// Panggil fungsi saat halaman dimuat
-loadLeaderboard();
+// Minta data leaderboard saat halaman dimuat
+socket.emit('mintaLeaderboard');
+
+// Terima update data dari server
+socket.on('updateLeaderboard', (data) => {
+    renderLeaderboard(data);
+});
+
+
 
 
     </script>
